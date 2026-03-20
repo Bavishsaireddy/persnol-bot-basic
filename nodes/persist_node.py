@@ -1,5 +1,5 @@
 # nodes/persist_node.py
-# Terminal node — saves both conversation turns to SQLite and seals metadata.
+# Terminal node — saves both conversation turns to Redis (or SQLite fallback) and seals metadata.
 
 import logging
 from datetime import datetime

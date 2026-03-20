@@ -74,13 +74,19 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
 
         # Deferred import keeps graph/nodes free of mcp_server dependency
         from graph import compiled_graph
+        import asyncio
 
-        result = compiled_graph.invoke({
-            "session_id":   session_id,
-            "user_message": user_msg,
-            "messages":     [],
-            "metadata":     {},
-        })
+        # Run synchronous LangGraph pipeline in a thread so the async
+        # event loop is never blocked while Claude is generating.
+        result = await asyncio.to_thread(
+            compiled_graph.invoke,
+            {
+                "session_id":   session_id,
+                "user_message": user_msg,
+                "messages":     [],
+                "metadata":     {},
+            },
+        )
         answer = result.get("response", "")
 
         logger.debug(

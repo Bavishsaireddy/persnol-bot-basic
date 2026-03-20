@@ -1,7 +1,7 @@
 # nodes/context_node.py
-# Loads conversation history from SQLite and builds the memory context
-# that bchat_node will inject into the system prompt.
-# Also decides whether retrieval_node should run.
+# Loads conversation history from Redis (or SQLite fallback) and builds
+# the memory context that bchat_node will inject into the system prompt.
+# Routing decision is read from state["route"] set by intake_node.
 # All rules come from config.yaml — no hardcoding.
 
 import logging
@@ -14,13 +14,13 @@ from memory import load_history, build_memory_context
 logger = logging.getLogger(__name__)
 
 _tools_cfg = CONFIG["graph"]["tools"]
-_routing   = CONFIG["graph"]["routing"]
 
 
 def context_node(state: AgentState) -> AgentState:
     """
-    1. Loads SQLite history → builds memory_context string.
-    2. Sets needs_tools based on config keywords + tools.enabled flag.
+    1. Loads Redis history → builds memory_context string.
+    2. Sets needs_tools by reading state["route"] set by intake_node — no
+       duplicate keyword scan here.
     """
     session_id = state["session_id"]
     t0 = perf_counter()
@@ -33,10 +33,9 @@ def context_node(state: AgentState) -> AgentState:
         needs_tools = False
         reason      = "tools_disabled_in_config"
     else:
-        msg         = (state.get("user_message") or "").lower()
-        keywords    = [kw.lower() for kw in _routing.get("tool_keywords", [])]
-        needs_tools = any(kw in msg for kw in keywords)
-        reason      = "keyword_match" if needs_tools else "no_keyword"
+        # Trust the routing decision already made by intake_node
+        needs_tools = state.get("route") == "retrieve"
+        reason      = "intake_route_retrieve" if needs_tools else "intake_route_direct"
 
     elapsed = round(perf_counter() - t0, 3)
     logger.debug(

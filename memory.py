@@ -1,9 +1,11 @@
 # memory.py
-# Shared SQLite memory layer — imported by both mcp_server.py and the graph nodes.
-# Keeping this separate breaks the circular-import chain between mcp_server ↔ nodes.
+# Dual-backend memory layer — SQLite (local) or Redis (production).
+# Switch via config.yaml → memory.backend: "sqlite" | "redis"
 # All config comes from config.yaml → memory.
 
+import json
 import logging
+import os
 import sqlite3
 from datetime import datetime
 
@@ -13,9 +15,48 @@ logger = logging.getLogger(__name__)
 
 _mem     = CONFIG["memory"]
 _persona = CONFIG["persona"]
+BACKEND  = _mem.get("backend", "sqlite")
 
 
-# ── DB connection ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+#  Redis backend
+# ══════════════════════════════════════════════════════════════
+
+def _redis_client():
+    import redis
+    url = os.getenv("REDIS_URL", _mem.get("redis_url", "redis://localhost:6379"))
+    return redis.from_url(url, decode_responses=True)
+
+def _redis_key(session_id: str) -> str:
+    app_name = CONFIG.get("app", {}).get("name", "agent")
+    return f"{app_name}:session:{session_id}:history"
+
+def _redis_load(session_id: str) -> list[dict]:
+    r    = _redis_client()
+    key  = _redis_key(session_id)
+    raw  = r.lrange(key, 0, _mem["history_limit"] - 1)
+    msgs = [json.loads(item) for item in raw]
+    return list(reversed(msgs))
+
+def _redis_save(session_id: str, role: str, content: str) -> None:
+    r   = _redis_client()
+    key = _redis_key(session_id)
+    r.lpush(key, json.dumps({
+        "role":    role,
+        "content": content,
+        "ts":      datetime.utcnow().isoformat(),
+    }))
+    ttl = _mem.get("redis_ttl_seconds", 86400 * 7)
+    r.expire(key, ttl)
+
+def _redis_clear(session_id: str) -> None:
+    _redis_client().delete(_redis_key(session_id))
+    logger.info("Redis memory cleared for session: %s", session_id)
+
+
+# ══════════════════════════════════════════════════════════════
+#  SQLite backend
+# ══════════════════════════════════════════════════════════════
 
 def _db() -> sqlite3.Connection:
     conn = sqlite3.connect(_mem["db_path"])
@@ -34,11 +75,7 @@ def _db() -> sqlite3.Connection:
     conn.commit()
     return conn
 
-
-# ── Read ──────────────────────────────────────────────────────
-
-def load_history(session_id: str) -> list[dict]:
-    """Return the last history_limit turns for this session, oldest first."""
+def _sqlite_load(session_id: str) -> list[dict]:
     with _db() as conn:
         rows = conn.execute(
             "SELECT role, content FROM conversations "
@@ -46,6 +83,47 @@ def load_history(session_id: str) -> list[dict]:
             (session_id, _mem["history_limit"]),
         ).fetchall()
     return [{"role": r[0], "content": r[1]} for r in reversed(rows)]
+
+def _sqlite_save(session_id: str, role: str, content: str) -> None:
+    with _db() as conn:
+        conn.execute(
+            "INSERT INTO conversations (session_id, role, content, ts) VALUES (?,?,?,?)",
+            (session_id, role, content, datetime.utcnow().isoformat()),
+        )
+        conn.commit()
+
+def _sqlite_clear(session_id: str) -> None:
+    with _db() as conn:
+        conn.execute("DELETE FROM conversations WHERE session_id=?", (session_id,))
+        conn.commit()
+    logger.info("SQLite memory cleared for session: %s", session_id)
+
+
+# ══════════════════════════════════════════════════════════════
+#  Public API — backend-agnostic
+# ══════════════════════════════════════════════════════════════
+
+def load_history(session_id: str) -> list[dict]:
+    """Return the last history_limit turns for this session, oldest first."""
+    if BACKEND == "redis":
+        return _redis_load(session_id)
+    return _sqlite_load(session_id)
+
+
+def save_turn(session_id: str, role: str, content: str) -> None:
+    """Append one turn to the conversation log."""
+    if BACKEND == "redis":
+        _redis_save(session_id, role, content)
+    else:
+        _sqlite_save(session_id, role, content)
+
+
+def clear_session(session_id: str) -> None:
+    """Delete all history for a session."""
+    if BACKEND == "redis":
+        _redis_clear(session_id)
+    else:
+        _sqlite_clear(session_id)
 
 
 def build_memory_context(history: list[dict]) -> str:
@@ -59,23 +137,3 @@ def build_memory_context(history: list[dict]) -> str:
         label = "You asked" if msg["role"] == "user" else f"{_persona['name']} said"
         lines.append(f"{label}: {msg['content'][:preview]}")
     return "\n".join(lines)
-
-
-# ── Write ─────────────────────────────────────────────────────
-
-def save_turn(session_id: str, role: str, content: str) -> None:
-    """Append one turn to the conversation log."""
-    with _db() as conn:
-        conn.execute(
-            "INSERT INTO conversations (session_id, role, content, ts) VALUES (?,?,?,?)",
-            (session_id, role, content, datetime.utcnow().isoformat()),
-        )
-        conn.commit()
-
-
-def clear_session(session_id: str) -> None:
-    """Delete all history for a session."""
-    with _db() as conn:
-        conn.execute("DELETE FROM conversations WHERE session_id=?", (session_id,))
-        conn.commit()
-    logger.info("Memory cleared for session: %s", session_id)

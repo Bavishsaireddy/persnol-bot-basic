@@ -21,6 +21,9 @@ pydantic
 pyyaml
 requests
 
+# Memory backend
+redis                # used when memory.backend: redis in config.yaml
+
 # Graph DB (only needed when neo4j.enabled: true in config.yaml)
 neo4j
 
