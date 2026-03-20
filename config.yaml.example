@@ -1,0 +1,146 @@
+# config.yaml.example
+# Copy this file to config.yaml and fill in your details.
+# This is the single source of truth — no values are hardcoded in Python.
+#
+#   cp config.yaml.example config.yaml
+#
+# Secrets (API keys) go in .env, not here.
+# Reference them as ${ENV_VAR_NAME} and they are auto-expanded at startup.
+# ─────────────────────────────────────────────────────────────────────────
+
+
+# ── App metadata ──────────────────────────────────────────────
+app:
+  version: "1.0.0"            # shown in health endpoint + startup banner
+  name: "your-bot-name"       # used as MCP server ID and FastAPI title prefix
+                               # e.g. "bavish-bot", "jane-ai", "recruiter-agent"
+
+
+# ── Persona ───────────────────────────────────────────────────
+# Everything the AI says about itself comes from this block.
+# Change any field here and the whole system updates — no code changes.
+
+persona:
+  name: "Your Full Name"
+  title: "Your Job Title"                        # e.g. "AI Engineer", "ML Researcher"
+  location: "Your City, State"                   # e.g. "San Francisco Bay Area, CA"
+  status: "Your current status"                  # e.g. "Open to full-time roles"
+  education: "Your Degree · Your University"     # e.g. "MS CS · Stanford"
+
+  # The core identity prompt injected at the top of every system message.
+  # Write in second person ("You are ...") so Claude adopts the persona.
+  identity: |
+    You are [Your Name] — a [Your Title] who builds [what you build].
+    You have worked at [Company A] and [Company B].
+    You are currently [your status].
+
+  # Technologies shown in the UI sidebar and injected into the system prompt.
+  stack:
+    - "LangGraph"           # add or remove freely
+    - "LangChain"
+    - "Claude (Anthropic)"
+    - "FastAPI"
+    - "Python"
+
+  # Strong opinions the AI expresses when asked about tech choices.
+  opinions:
+    - "Opinion 1 about a tech choice"
+    - "Opinion 2 about a tech choice"
+
+  # How the AI adapts its tone depending on who it thinks is asking.
+  # Keys can be anything; values are natural-language instructions to Claude.
+  tone_by_audience:
+    recruiter: "warm, confident, 2-3 sentences, drop buzzwords naturally"
+    engineer:  "detailed, cite specific patterns, use technical terms freely"
+    casual:    "relaxed, can be funny, drop the formality"
+
+  # Hard rules Claude follows in every response. Be explicit.
+  rules:
+    - "Always speak first-person. You ARE [Name], not an assistant playing [Name]."
+    - "Never say 'As an AI' or 'I am a language model'"
+    - "If you don't know something, say 'I haven't built that yet'"
+
+
+# ── LLM ───────────────────────────────────────────────────────
+llm:
+  provider: "anthropic"               # only "anthropic" supported currently
+  model: "claude-sonnet-4-5"          # any valid Anthropic model ID
+                                       # e.g. claude-opus-4-5, claude-haiku-4-5
+  max_tokens: 1024                    # max tokens in the response (1–4096)
+  temperature: 0.7                    # 0.0 = deterministic, 1.0 = creative
+  entity_extraction_max_tokens: 100   # tokens for Neo4j entity extraction calls
+
+
+# ── Memory ────────────────────────────────────────────────────
+memory:
+  backend: "sqlite"           # "sqlite" (local file) | "redis" (not yet implemented)
+  db_path: "bavish_memory.db" # path to the SQLite file (relative to project root)
+  history_limit: 10           # total past messages loaded per session (1–50)
+  context_window: 6           # last N messages summarised into the system prompt (≤ history_limit)
+  content_preview_chars: 200  # max chars per message shown in the context summary
+
+
+# ── Neo4j code graph RAG ──────────────────────────────────────
+# Leave enabled: false unless you have a Neo4j database with your code indexed.
+neo4j:
+  enabled: false              # true | false  — flip when your graph is ready
+  uri: "${NEO4J_URI}"         # bolt://localhost:7687  or  neo4j+s://xxxxx.databases.neo4j.io
+  user: "${NEO4J_USER}"       # neo4j (default local username)
+  password: "${NEO4J_PASSWORD}"
+  max_hops: 3                 # how deep to traverse CALLS relationships (1–10)
+  max_entities: 3             # max entities extracted per query (1–10)
+  result_limit: 20            # max rows returned per entity from Neo4j (1–100)
+
+
+# ── FastAPI backend ───────────────────────────────────────────
+server:
+  host: "0.0.0.0"             # "0.0.0.0" = accept all interfaces, "127.0.0.1" = localhost only
+  port: 8000                  # any free port (1024–65535)
+  reload: true                # true during dev (auto-restart on code change), false in prod
+  log_level: "warning"        # uvicorn log level: debug | info | warning | error | critical
+  startup_timeout: 30         # seconds main.py polls for backend health before giving up
+
+
+# ── Streamlit UI ──────────────────────────────────────────────
+ui:
+  port: 8501                  # any free port — must differ from server.port
+  headless: false             # false = opens browser automatically, true = server/cloud deploy
+  layout: "centered"          # "centered" (narrow, readable) | "wide" (full-width)
+  page_icon: "🤖"             # emoji or URL to a .png favicon
+  avatars:
+    user: "🧑"               # emoji shown next to user messages in the chat
+    assistant: "🤖"          # emoji shown next to assistant messages
+
+
+# ── LangGraph routing ─────────────────────────────────────────
+graph:
+  routing:
+    default_route: "direct"   # "direct" (skip retrieval) | "retrieve" (always fetch knowledge)
+    simple_msg_max_chars: 150 # messages shorter than this with no keywords → direct path
+    tool_keywords:            # any of these words in a message triggers retrieval_node
+      - "code"
+      - "project"
+      - "github"
+      - "architecture"
+      - "implementation"
+      - "how did you"
+      - "show me"
+      - "neo4j"
+      - "graph"
+      - "pipeline"
+      # add your own keywords here
+  tools:
+    enabled: true             # false = always skip retrieval_node even if keywords match
+    timeout: 10               # seconds before a tool call is abandoned
+
+
+# ── Telegram ──────────────────────────────────────────────────
+telegram:
+  enabled: true               # false = /webhook endpoint rejects all requests
+  parse_mode: "Markdown"      # "Markdown" | "HTML" | "MarkdownV2"
+  session_prefix: "telegram"  # session IDs look like "<prefix>-<chat_id>"
+  commands:                   # messages that start with these are handled as bot commands
+    - "/start"                # add more commands here e.g. "/help", "/clear"
+  start_message: |
+    Hey! I'm [Your Name]'s AI agent.
+    Ask me anything about my work, stack, projects, or experience.

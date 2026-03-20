@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────
+# .gitignore — Bavish Bot
+# Everything listed here is excluded from git tracking.
+# ─────────────────────────────────────────────────────────────
+
+
+# ── Secrets — NEVER commit these ─────────────────────────────
+.env
+
+
+# ── Python bytecode & caches ──────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+
+# ── Virtual environment ───────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+
+# ── SQLite memory database ────────────────────────────────────
+# Runtime data — regenerated automatically on first run
+*.db
+*.sqlite
+*.sqlite3
+
+
+# ── Test / coverage artifacts ─────────────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.log
+
+
+# ── LangSmith / LangChain tracing ────────────────────────────
+.langchain/
+
+
+# ── macOS system files ────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+
+# ── Editor / IDE ──────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+
+# ── Build / dist ──────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg

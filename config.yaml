@@ -1,0 +1,125 @@
+# config.yaml — single source of truth for the entire Bavish Bot.
+# Every value used in any Python file must live here.
+# Secrets (API keys) stay in .env — referenced as ${VAR_NAME}.
+
+# ── App metadata ──────────────────────────────────────────────
+app:
+  version: "1.0.0"
+  name: "bavish-bot"          # used as MCP server ID and FastAPI title prefix
+
+# ── Persona ───────────────────────────────────────────────────
+persona:
+  name: "Bavish Reddy Kangari"
+  title: "AI Engineer"
+  location: "San Francisco Bay Area, CA"
+  status: "F-1 OPT · open to full-time AI Engineer roles"
+  education: "MS Computer Science · Cal State East Bay"
+
+  identity: |
+    You are Bavish Reddy Kangari — an AI Engineer building LLM systems,
+    agentic pipelines, RAG architectures, and MLOps infrastructure.
+    You have worked at Optum (AI Engineer) and Innovapath TalentScreen (AI Engineer).
+    You are currently on F-1 OPT and actively targeting full-time AI Engineer roles.
+
+  stack:
+    - "LangGraph"
+    - "LangChain"
+    - "Claude (Anthropic)"
+    - "Neo4j"
+    - "LlamaIndex"
+    - "Vertex AI"
+    - "MilvusDB"
+    - "FastAPI"
+    - "Python"
+
+  opinions:
+    - "LangGraph over vanilla LangChain for anything stateful"
+    - "Evals are the most neglected part of LLM engineering"
+    - "Neo4j + RAG beats pure vector search for structured codebases"
+    - "If a simple chain solves it, don't reach for an agent loop"
+
+  tone_by_audience:
+    recruiter: "warm, confident, 2-3 sentences, drop buzzwords naturally"
+    engineer: "detailed, cite specific patterns, use technical terms freely"
+    casual: "relaxed, can be funny, drop the formality"
+
+  rules:
+    - "Always speak first-person. You ARE Bavish, not an assistant playing Bavish."
+    - "Never say 'As an AI' or 'I am a language model'"
+    - "If you don't know something, say 'I haven't built that yet'"
+    - "Use phrases like 'in my experience', 'the way I've approached this'"
+
+# ── LLM ───────────────────────────────────────────────────────
+llm:
+  provider: "anthropic"
+  model: "claude-sonnet-4-5"
+  max_tokens: 1024
+  temperature: 0.7
+  entity_extraction_max_tokens: 100   # used by Neo4j entity extractor
+
+# ── Memory ────────────────────────────────────────────────────
+memory:
+  backend: "sqlite"                   # sqlite | redis
+  db_path: "bavish_memory.db"
+  history_limit: 10                   # total messages to load per session
+  context_window: 6                   # last N messages to include in prompt context
+  content_preview_chars: 200          # max chars per message in context summary
+
+# ── Neo4j (code graph RAG) ────────────────────────────────────
+neo4j:
+  enabled: false                      # flip to true once graph is ready
+  uri: "${NEO4J_URI}"
+  user: "${NEO4J_USER}"
+  password: "${NEO4J_PASSWORD}"
+  max_hops: 3                         # depth of CALLS traversal
+  max_entities: 3                     # max entities extracted per query
+  result_limit: 20                    # max rows returned per entity
+
+# ── FastAPI backend ───────────────────────────────────────────
+server:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  log_level: "warning"                # uvicorn log level
+  startup_timeout: 30                 # seconds main.py waits for backend to be ready
+
+# ── Streamlit UI ──────────────────────────────────────────────
+ui:
+  port: 8501
+  headless: false                     # set true when deploying to a server
+  layout: "centered"                  # centered | wide
+  page_icon: "🤖"
+  avatars:
+    user: "🧑"
+    assistant: "🤖"
+
+# ── LangGraph routing ─────────────────────────────────────────
+graph:
+  routing:
+    default_route: "direct"         # direct | retrieve  (fallback when no keyword hits)
+    simple_msg_max_chars: 150       # messages shorter than this → lc_node (fast path)
+    tool_keywords:                  # any of these in message → orchestration subgraph
+      - "code"
+      - "project"
+      - "github"
+      - "architecture"
+      - "implementation"
+      - "how did you"
+      - "show me"
+      - "neo4j"
+      - "graph"
+      - "pipeline"
+  tools:
+    enabled: true
+    timeout: 10                     # seconds before tool call is abandoned
+
+# ── Telegram ──────────────────────────────────────────────────
+telegram:
+  enabled: true
+  parse_mode: "Markdown"
+  session_prefix: "telegram"          # session IDs look like "telegram-<chat_id>"
+  commands:
+    - "/start"                        # commands handled before sending to LLM
+  start_message: |
+    Hey! I'm Bavish's AI agent.
+    Ask me anything about his work, stack, projects, or experience.

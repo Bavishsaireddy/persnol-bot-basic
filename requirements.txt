@@ -1,0 +1,30 @@
+# Core LLM & agent
+anthropic
+langchain-core
+langchain-anthropic
+langgraph
+
+# Observability
+langsmith
+
+# API & server
+fastapi
+uvicorn[standard]
+httpx
+
+# UI
+streamlit
+
+# Utilities
+python-dotenv
+pydantic
+pyyaml
+requests
+
+# Graph DB (only needed when neo4j.enabled: true in config.yaml)
+neo4j
+
+# Testing
+pytest
+pytest-asyncio
+httpx        # also used by FastAPI TestClient
