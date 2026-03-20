@@ -18,8 +18,8 @@ Everything about the persona, routing, memory, and UI is driven by `config.yaml`
 ## Quick Start
 
 ```bash
-# 1. Copy config and secrets
-cp config.yaml.example config.yaml      # edit your persona, ports, etc.
+# 1. Copy and fill in your personal config + secrets
+cp config.yaml.example config.yaml      # add your name, title, identity, etc.
 cp .env.example .env                    # add your ANTHROPIC_API_KEY
 
 # 2. Create virtual environment
@@ -65,12 +65,55 @@ files/
 │   ├── test_graph.py       Integration tests — full pipeline end-to-end
 │   └── test_api.py         API tests — FastAPI endpoints
 │
-├── config.yaml             All settings — persona, LLM, memory, routing, UI
-├── config.yaml.example     Documented template — copy this to get started
-├── .env                    Your secrets — never committed (gitignored)
+├── config.yaml             Your personal config — gitignored (copy from example)
+├── config.yaml.example     Documented template — committed, safe to share
+├── .env                    Your API keys — gitignored (copy from example)
 ├── .env.example            Documented secrets template
 ├── requirements.txt        Python dependencies
 └── .gitignore              What to keep out of git
+```
+
+---
+
+## Why These Technologies
+
+### LangGraph
+Used for the agent pipeline instead of plain LangChain because it gives explicit control over the flow — each node has one job, edges are conditional, and the state is typed. Easy to add, remove, or replace a node without touching the rest of the pipeline.
+
+### Claude (Anthropic)
+Chosen for its strong instruction-following and persona consistency. The model ID lives in `config.yaml` so you can swap to any Claude model (Haiku, Sonnet, Opus) without touching code.
+
+### FastAPI
+Thin HTTP layer between the UI/Telegram and the agent. Async, fast, and auto-generates `/docs` for free. No business logic lives here — it just forwards requests to the MCP tools.
+
+### MCP (Model Context Protocol)
+Wraps the agent tools (`chat`, `get_persona`, `clear_memory`) in a standard protocol. This means the agent can be connected to any MCP-compatible client in the future, not just this UI.
+
+### Streamlit
+Zero-config browser UI. No frontend build step, no JavaScript. Good enough for a personal tool and fast to iterate on.
+
+### SQLite
+Built into Python — no server, no setup, no Docker dependency just for memory. The database file is created automatically on first run. Swap to Redis later if you need multi-instance support.
+
+---
+
+## Why `config.yaml` Is in `.gitignore`
+
+`config.yaml` contains your **personal details** — your name, job title, location, identity prompt, opinions, and work history. Even though it holds no API keys, this information is yours and should not be pushed to a public repo.
+
+Both files are gitignored for different reasons:
+
+```
+.env          → gitignored → API keys, tokens, passwords (security)
+config.yaml   → gitignored → your personal persona and details (privacy)
+```
+
+`config.yaml.example` **is** committed — it's a fully documented blank template so anyone cloning the repo knows exactly what to fill in.
+
+**Setup on a new machine:**
+```bash
+cp config.yaml.example config.yaml   # then fill in your details
+cp .env.example .env                 # then fill in your API keys
 ```
 
 ---
@@ -148,16 +191,17 @@ pytest tests/ -v
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| LLM | Claude (Anthropic) via `anthropic` SDK |
-| Agent pipeline | LangGraph (`langgraph`) |
-| API server | FastAPI + Uvicorn |
-| Chat UI | Streamlit |
-| Memory | SQLite (built-in, zero setup) |
-| Code graph RAG | Neo4j (optional) |
-| Observability | LangSmith (optional) |
-| Messaging | Telegram Bot API (optional) |
+| Layer | Technology | Why |
+|---|---|---|
+| LLM | Claude (Anthropic) | Strong persona consistency, config-swappable model |
+| Agent pipeline | LangGraph | Explicit node/edge control, easy to extend |
+| API server | FastAPI + Uvicorn | Async, lightweight, auto-docs |
+| Agent protocol | MCP | Standard tool interface, future-compatible |
+| Chat UI | Streamlit | Zero frontend setup, fast iteration |
+| Memory | SQLite | Zero setup, built into Python |
+| Code graph RAG | Neo4j (optional) | Structured traversal of code relationships |
+| Observability | LangSmith (optional) | Trace every LLM call end-to-end |
+| Messaging | Telegram Bot API (optional) | Chat from anywhere |
 
 ---
 

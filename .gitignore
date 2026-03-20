@@ -4,8 +4,9 @@
 # ─────────────────────────────────────────────────────────────
 
 
-# ── Secrets — NEVER commit these ─────────────────────────────
+# ── Secrets & personal config — NEVER commit these ───────────
 .env
+config.yaml
 
 
 # ── Python bytecode & caches ──────────────────────────────────
