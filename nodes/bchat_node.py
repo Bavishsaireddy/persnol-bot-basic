@@ -29,15 +29,17 @@ def bchat_node(state: AgentState) -> AgentState:
     """
     session_id   = state["session_id"]
     user_msg     = state["user_message"]
-    memory_ctx   = state.get("memory_context", "")
-    code_ctx     = state.get("code_context",   "")
-    history_msgs = state.get("messages",        [])
+    memory_ctx   = state.get("memory_context",  "")
+    code_ctx     = state.get("code_context",    "")
+    profile_ctx  = state.get("profile_context", "")
+    history_msgs = state.get("messages",         [])
 
     t0 = perf_counter()
 
     system_prompt = build_system_prompt(
         memory_context=memory_ctx,
         code_context=code_ctx,
+        profile_context=profile_ctx,
     )
 
     messages = list(history_msgs)
@@ -50,7 +52,18 @@ def bchat_node(state: AgentState) -> AgentState:
         system=system_prompt,
         messages=messages,
     )
-    answer  = response.content[0].text
+
+    text_blocks = [b.text for b in response.content if hasattr(b, "text") and b.text]
+    if not text_blocks:
+        logger.error(
+            "bchat_node | empty content from Claude | session=%s | stop_reason=%s",
+            session_id, response.stop_reason,
+        )
+        raise RuntimeError(
+            f"The model returned an empty response (stop_reason={response.stop_reason!r}). "
+            "Please try again."
+        )
+    answer  = text_blocks[0]
     elapsed = round(perf_counter() - t0, 3)
 
     logger.debug(
@@ -65,6 +78,7 @@ def bchat_node(state: AgentState) -> AgentState:
             **(state.get("metadata") or {}),
             "bchat_node_seconds":    elapsed,
             "bchat_node_used_tools": bool(code_ctx),
+            "bchat_node_used_profile": bool(profile_ctx),
             "bchat_node_tokens":     dict(response.usage),
         },
     }
