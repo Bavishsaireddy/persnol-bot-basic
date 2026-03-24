@@ -310,7 +310,9 @@ if submitted and prompt and prompt.strip():
                 timeout=30,
             )
             resp.raise_for_status()
-            answer = resp.json()["response"]
+            answer = resp.json().get("response", "").strip()
+            if not answer:
+                answer = "No response received — please try again."
         except Exception as exc:
             answer = f"Error: {exc}"
 

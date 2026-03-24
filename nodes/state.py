@@ -17,9 +17,11 @@ class AgentState(TypedDict, total=False):
     needs_tools:    bool            # orchestration_node decides
 
     # ── Context built across nodes ────────────────────────────
-    memory_context: str             # summarised chat history
-    code_context:   str             # Neo4j / code graph results
-    tools_output:   str             # combined output from data_tool_node
+    memory_context:  str            # summarised chat history
+    code_context:    str            # Neo4j / code graph results
+    tools_output:    str            # combined output from data_tool_node
+    profile_context: str            # GitHub + LinkedIn data from profile_node
+    needs_profile:   bool           # set by context_node when route == "profile"
 
     # ── LangChain / LangGraph message list ────────────────────
     messages: Annotated[list[dict], operator.add]   # accumulated turn-by-turn messages

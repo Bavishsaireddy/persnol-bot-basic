@@ -124,6 +124,156 @@ graph:
     enabled: true
     timeout: 10                     # seconds before tool call is abandoned
 
+# ── Knowledge base ────────────────────────────────────────────
+# Add anything you want the bot to know and answer from.
+# For longer docs (SOPs, bios, guides), drop .md/.txt files into the
+# folder specified by `files_dir` — they are loaded automatically at startup.
+knowledge:
+  files_dir: "knowledge"          # path relative to project root; set to "" to disable
+
+  projects:
+    - name: "Bavish Bot"
+      description: >
+        A personal AI agent that represents me online — built with LangGraph,
+        Claude (Anthropic), FastAPI, Redis, and a Neo4j code graph. Deployed on
+        Telegram and as a web UI. Talks to recruiters, engineers, and curious people.
+      tech: ["LangGraph", "LangChain", "Claude", "Neo4j", "FastAPI", "Redis", "Streamlit"]
+      github: ""                  # optional link
+
+    # Add more projects below:
+    # - name: "Project Name"
+    #   description: "What it does and why."
+    #   tech: ["Python", "..."]
+    #   github: "https://github.com/..."
+
+  experience:
+    - role: "AI Engineer (OPT)"
+      company: "Cal State East Bay — MS CS Program"
+      period: "2023 – present"
+      highlights:
+        - "Built LLM-powered pipelines using LangGraph, LangChain, and Anthropic Claude."
+        - "Designed RAG systems with Neo4j, MilvusDB, and LlamaIndex."
+        - "Deployed agents with FastAPI, Redis, and Streamlit on cloud infra."
+
+    # Add more experience below:
+    # - role: "..."
+    #   company: "..."
+    #   period: "..."
+    #   highlights:
+    #     - "..."
+
+  faqs:
+    - q: "Are you available for full-time roles?"
+      a: "Yes — I'm on F-1 OPT and actively looking for full-time AI Engineer positions."
+    - q: "Where are you located?"
+      a: "San Francisco Bay Area, CA. Open to hybrid or remote."
+    - q: "What's your notice period / when can you start?"
+      a: "I can start immediately."
+
+    # Add more FAQs below:
+    # - q: "..."
+    #   a: "..."
+
+  sops: []
+  # sops is for short free-text SOPs you want the bot to follow or reference.
+  # For longer SOPs, put them as .md files in the knowledge/ folder instead.
+  # Example:
+  # sops:
+  #   - title: "How to answer salary questions"
+  #     content: "Be honest. My target range is $X–$Y. I'm flexible for the right role."
+
+# ── GitHub integration ────────────────────────────────────────
+# Live data is fetched via the GitHub REST API when a user asks about
+# repos, contributions, or GitHub profile.
+# GITHUB_TOKEN is optional but strongly recommended (increases rate limit
+# from 60 to 5000 req/hour). Add it to .env as GITHUB_TOKEN=ghp_...
+github:
+  enabled: true
+  url: "https://github.com/Bavishsaireddy"
+  username: "bavishsaireddy"        # ← your GitHub username
+  token: "${GITHUB_TOKEN}"          # optional — set in .env
+  max_repos: 6                      # how many repos to surface
+  show_languages: true              # include language breakdown per repo
+  profile_keywords:                 # messages containing any of these trigger the profile node
+    - "github"
+    - "repo"
+    - "repository"
+    - "repositories"
+    - "open source"
+    - "contributions"
+    - "stars"
+    - "pull request"
+    - "commits"
+
+# ── LinkedIn integration ───────────────────────────────────────
+# No API key needed — fill this in from your LinkedIn profile once.
+# For even longer text (certifications, recommendations, etc.) drop a
+# knowledge/linkedin.md file and it will be loaded automatically.
+linkedin:
+  enabled: true
+  url: "https://www.linkedin.com/in/bavish-sai-reddy-kangari-a74203193/"
+  headline: "AI Engineer · LangGraph · Claude · Neo4j · FastAPI"
+  connections: "500+"
+  summary: |
+    AI Engineer on F-1 OPT with hands-on experience building LLM-powered
+    products — agents, RAG pipelines, and evaluation frameworks. Looking for
+    full-time roles where I can work at the intersection of research and
+    production engineering.
+
+  experience:
+    - title: "AI Engineer"
+      company: "Cal State East Bay (MS CS Program)"
+      period: "2023 – 2025"
+      highlights:
+        - "Built LLM-powered pipelines with LangGraph, LangChain, and Anthropic Claude."
+        - "Designed RAG systems with Neo4j, MilvusDB, and LlamaIndex."
+        - "Deployed agents with FastAPI, Redis, and Streamlit."
+    # Add more roles:
+    # - title: "..."
+    #   company: "..."
+    #   period: "..."
+    #   highlights:
+    #     - "..."
+
+  education:
+    - degree: "MS Computer Science"
+      school: "Cal State East Bay"
+      period: "2022 – 2024"
+    # - degree: "..."
+    #   school: "..."
+    #   period: "..."
+
+  skills:
+    - "LangGraph"
+    - "LangChain"
+    - "Claude (Anthropic)"
+    - "Neo4j"
+    - "LlamaIndex"
+    - "MilvusDB"
+    - "FastAPI"
+    - "Redis"
+    - "Streamlit"
+    - "Python"
+    - "Vertex AI"
+    - "RAG"
+    - "Agentic Pipelines"
+    - "Multi-Agent Systems"
+
+  certifications: []
+  # certifications:
+  #   - "AWS Certified Machine Learning Specialty"
+  #   - "..."
+
+  profile_keywords:
+    - "linkedin"
+    - "connect"
+    - "profile"
+    - "resume"
+    - "cv"
+    - "experience"
+    - "work history"
+    - "background"
+
 # ── Telegram ──────────────────────────────────────────────────
 telegram:
   enabled: true
