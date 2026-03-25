@@ -120,6 +120,16 @@ graph:
       - "neo4j"
       - "graph"
       - "pipeline"
+    resume_keywords:                # any of these → resume route (highest priority)
+      - "resume"
+      - "your resume"
+      - "show resume"
+      - "see resume"
+      - "view resume"
+      - "download resume"
+      - "share resume"
+      - "cv"
+      - "curriculum vitae"
   tools:
     enabled: true
     timeout: 10                     # seconds before tool call is abandoned
@@ -268,11 +278,19 @@ linkedin:
     - "linkedin"
     - "connect"
     - "profile"
-    - "resume"
-    - "cv"
     - "experience"
     - "work history"
     - "background"
+
+# ── Telegram ──────────────────────────────────────────────────
+# ── Resume ────────────────────────────────────────────────────
+# Controls what is shown when a visitor asks to see the resume.
+# Set url to a public PDF link (Google Drive, Dropbox, etc.) so the bot
+# can also share a download link alongside the formatted text.
+resume:
+  url: ""                             # optional: public PDF link e.g. https://drive.google.com/...
+  show_email: true                    # include contact email in resume display
+  show_phone: false                   # set true if you want phone shown
 
 # ── Telegram ──────────────────────────────────────────────────
 telegram:

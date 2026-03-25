@@ -32,18 +32,20 @@ def context_node(state: AgentState) -> AgentState:
     if not _tools_cfg.get("enabled", True):
         needs_tools   = False
         needs_profile = False
+        needs_resume  = False
         reason        = "tools_disabled_in_config"
     else:
         # Trust the routing decision already made by intake_node
         route         = state.get("route")
         needs_tools   = route == "retrieve"
         needs_profile = route == "profile"
+        needs_resume  = route == "resume"
         reason        = f"intake_route_{route or 'direct'}"
 
     elapsed = round(perf_counter() - t0, 3)
     logger.debug(
-        "context_node | session=%s | history=%d | needs_tools=%s | needs_profile=%s | reason=%s | %.3fs",
-        session_id, len(history), needs_tools, needs_profile, reason, elapsed,
+        "context_node | session=%s | history=%d | needs_tools=%s | needs_profile=%s | needs_resume=%s | reason=%s | %.3fs",
+        session_id, len(history), needs_tools, needs_profile, needs_resume, reason, elapsed,
     )
 
     return {
@@ -52,11 +54,13 @@ def context_node(state: AgentState) -> AgentState:
         "messages":       turn_messages,
         "needs_tools":    needs_tools,
         "needs_profile":  needs_profile,
+        "needs_resume":   needs_resume,
         "metadata": {
             **(state.get("metadata") or {}),
             "context_history_turns":  len(history),
             "context_needs_tools":    needs_tools,
             "context_needs_profile":  needs_profile,
+            "context_needs_resume":   needs_resume,
             "context_reason":         reason,
             "context_seconds":        elapsed,
         },

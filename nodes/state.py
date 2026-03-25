@@ -22,6 +22,10 @@ class AgentState(TypedDict, total=False):
     tools_output:    str            # combined output from data_tool_node
     profile_context: str            # GitHub + LinkedIn data from profile_node
     needs_profile:   bool           # set by context_node when route == "profile"
+    needs_resume:    bool           # set by context_node when route == "resume"
+
+    # ── Lead capture ──────────────────────────────────────────
+    lead_data:       dict           # contact info extracted from user message (email, phone, name)
 
     # ── LangChain / LangGraph message list ────────────────────
     messages: Annotated[list[dict], operator.add]   # accumulated turn-by-turn messages
