@@ -126,6 +126,57 @@ def clear_session(session_id: str) -> None:
         _sqlite_clear(session_id)
 
 
+# ══════════════════════════════════════════════════════════════
+#  Lead capture — stores visitor contact info
+# ══════════════════════════════════════════════════════════════
+
+def _redis_lead_key(session_id: str) -> str:
+    app_name = CONFIG.get("app", {}).get("name", "agent")
+    return f"{app_name}:leads:{session_id}"
+
+def _redis_save_lead(session_id: str, lead_data: dict) -> None:
+    r   = _redis_client()
+    key = _redis_lead_key(session_id)
+    payload = {**lead_data, "ts": datetime.utcnow().isoformat(), "session_id": session_id}
+    r.hset(key, mapping={k: str(v) for k, v in payload.items()})
+    ttl = _mem.get("redis_ttl_seconds", 86400 * 7)
+    r.expire(key, ttl)
+    logger.info("Redis lead saved | session=%s | fields=%s", session_id, list(lead_data.keys()))
+
+def _sqlite_save_lead(session_id: str, lead_data: dict) -> None:
+    with _db() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS leads (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                email      TEXT,
+                phone      TEXT,
+                ts         TEXT NOT NULL
+            )
+        """)
+        conn.execute(
+            "INSERT INTO leads (session_id, email, phone, ts) VALUES (?,?,?,?)",
+            (
+                session_id,
+                lead_data.get("email"),
+                lead_data.get("phone"),
+                datetime.utcnow().isoformat(),
+            ),
+        )
+        conn.commit()
+    logger.info("SQLite lead saved | session=%s | fields=%s", session_id, list(lead_data.keys()))
+
+
+def save_lead(session_id: str, lead_data: dict) -> None:
+    """Persist visitor contact info (email, phone, etc.) extracted from their message."""
+    if not lead_data:
+        return
+    if BACKEND == "redis":
+        _redis_save_lead(session_id, lead_data)
+    else:
+        _sqlite_save_lead(session_id, lead_data)
+
+
 def build_memory_context(history: list[dict]) -> str:
     """Summarise the last context_window turns into a compact string."""
     if not history:

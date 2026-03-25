@@ -1,9 +1,10 @@
 # graph.py
-# LangGraph StateGraph — 6-node pipeline.
+# LangGraph StateGraph — 7-node pipeline.
 #
 #   START
 #     └─► intake_node
 #               └─► context_node
+#                     ├─ needs_resume  → resume_node    → bchat_node → persist_node → END
 #                     ├─ needs_tools   → retrieval_node → bchat_node → persist_node → END
 #                     ├─ needs_profile → profile_node   → bchat_node → persist_node → END
 #                     └─ direct        ──────────────── → bchat_node → persist_node → END
@@ -17,6 +18,7 @@ from nodes import (
     context_node,
     retrieval_node,
     profile_node,
+    resume_node,
     bchat_node,
     persist_node,
 )
@@ -27,6 +29,8 @@ logger = logging.getLogger(__name__)
 # ── Edge condition ────────────────────────────────────────────
 
 def _route_after_context(state: AgentState) -> str:
+    if state.get("needs_resume"):
+        return "resume"
     if state.get("needs_profile"):
         return "profile"
     if state.get("needs_tools"):
@@ -43,6 +47,7 @@ def build_graph() -> StateGraph:
     g.add_node("context_node",   context_node)
     g.add_node("retrieval_node", retrieval_node)
     g.add_node("profile_node",   profile_node)
+    g.add_node("resume_node",    resume_node)
     g.add_node("bchat_node",     bchat_node)
     g.add_node("persist_node",   persist_node)
 
@@ -54,6 +59,7 @@ def build_graph() -> StateGraph:
         "context_node",
         _route_after_context,
         {
+            "resume":   "resume_node",
             "retrieve": "retrieval_node",
             "profile":  "profile_node",
             "direct":   "bchat_node",
@@ -62,6 +68,7 @@ def build_graph() -> StateGraph:
 
     g.add_edge("retrieval_node", "bchat_node")
     g.add_edge("profile_node",   "bchat_node")
+    g.add_edge("resume_node",    "bchat_node")
     g.add_edge("bchat_node",     "persist_node")
     g.add_edge("persist_node",   END)
 
@@ -72,5 +79,5 @@ def build_graph() -> StateGraph:
 compiled_graph = build_graph().compile()
 
 logger.info(
-    "LangGraph compiled — intake → context → (retrieval | profile |) bchat → persist"
+    "LangGraph compiled — intake → context → (resume | retrieval | profile |) bchat → persist"
 )
